@@ -8,7 +8,6 @@ extern void mergeCuda(int* array, int startindex, int endindex, int threadCount)
 // module load xl_r spectrum-mpi cuda/11.2
 // nvcc -g -G merge.cu -c -o mergecu
 // mpicc merge.c mergecu -o mergeout  -L/usr/local/cuda-11.2/lib64/ -lcudadevrt -lcudart -lstdc++
-// mpiexec mergeout
 // mpiexec -np 25 mergeout
 
 int main(int argc, char** argv) {
