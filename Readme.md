@@ -7,4 +7,4 @@ Reza Malik
 Generates a new c file with an array filled with random ints
 
  - compile as you would on your machine
- - $ generator <number of random ints you want>
+ - $ generator \<number of random ints you want\>
