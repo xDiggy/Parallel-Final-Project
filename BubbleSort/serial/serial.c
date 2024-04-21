@@ -4,8 +4,9 @@
 #include <unistd.h>
 
 #include "random_array_100.c"
+#include "random_array_1000.c"
+#include "random_array_5000.c"
 #include "random_array_10000.c"
-#include "random_array_100000.c"
 
 #include <stdbool.h>
 #include <stdio.h>
@@ -25,19 +26,26 @@ int main (int argc, char *argv[]) {
     gettimeofday(&bubble100After, NULL);
     timerAnalysis(bubble100Start, bubble100After, "Bubble sort 100");
 
+    // 1000
+    struct timeval bubble1000Start, bubble1000After;
+    gettimeofday(&bubble1000Start, NULL);
+    bubble(random_1000, 1000);
+    gettimeofday(&bubble1000After, NULL);
+    timerAnalysis(bubble1000Start, bubble1000After, "Bubble sort 1000");
+
+    // 5000
+    struct timeval bubble5000Start, bubble5000After;
+    gettimeofday(&bubble5000Start, NULL);
+    bubble(random_5000, 5000);
+    gettimeofday(&bubble5000After, NULL);
+    timerAnalysis(bubble5000Start, bubble5000After, "Bubble sort 5000");
+
     // 10.000
     struct timeval bubble10000Start, bubble10000After;
     gettimeofday(&bubble10000Start, NULL);
     bubble(random_10000, 10000);
     gettimeofday(&bubble10000After, NULL);
     timerAnalysis(bubble10000Start, bubble10000After, "Bubble sort 10000");
-
-    // 100.000
-    struct timeval bubble100000Start, bubble100000After;
-    gettimeofday(&bubble100000Start, NULL);
-    bubble(random_100000, 100000);
-    gettimeofday(&bubble100000After, NULL);
-    timerAnalysis(bubble100000Start, bubble100000After, "Bubble sort 100000");
 
     return EXIT_SUCCESS;
 }
