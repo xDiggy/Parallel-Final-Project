@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <mpi.h>
+#include <time.h>
 
 extern void mergeCuda(int* array, int startindex, int endindex, int threadCount, int* result);
 
@@ -8,7 +9,32 @@ extern void mergeCuda(int* array, int startindex, int endindex, int threadCount,
 // module load xl_r spectrum-mpi cuda/11.2
 // nvcc -g -G merge.cu -c -o mergecu
 // mpicc temp.c mergecu -o mergeout  -L/usr/local/cuda-11.2/lib64/ -lcudadevrt -lcudart -lstdc++
-// mpiexec mergeout
+// mpiexec mergeout randlist.txt
+
+void generate_random_array(const char* filename, int size) {
+    // Open the file for writing
+    FILE* file = fopen(filename, "w");
+    if (file == NULL) {
+        printf("Error opening file!\n");
+        return;
+    }
+
+    // Seed the random number generator
+    srand(time(NULL));
+
+    // Fill the array with random integers
+    for (int i = 0; i < size; i++) {
+        fprintf(file, "%d", rand() % 100); // Adjust the range of random numbers as needed
+        if (i < size - 1) {
+            fprintf(file, ",");
+        }
+    }
+
+    // Close the file
+    fclose(file);
+
+    printf("File '%s' created successfully.\n", filename);
+}
 
 
 void mergeSort(int* array, int lsize, int rsize, int* result){
@@ -80,11 +106,10 @@ int main(int argc, char** argv) {
                 5, 82, 52, 66, 16, 37, 38, 44};
 
     int len = 100;
-    
-    
-    
+
 
     MPI_Init(&argc, &argv);
+    MPI_Wtime();
 
     /*
     MPI_Status status;
@@ -99,7 +124,11 @@ int main(int argc, char** argv) {
     // Get the rank of the process
     int rank;
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-
+    
+    const char* fname = argv[1];
+    if (rank == 0){
+        generate_random_array(fname, 100);
+    }
 
     if (rank == 0){
         printf("Original List: [");
@@ -214,6 +243,11 @@ int main(int argc, char** argv) {
 
 
     // Finalize the MPI environment.
+    if (rank == 0){
+        double end_time = MPI_Wtime();
+        printf("Time %f\n",end_time);
+        
+    }
     free(subsorted);
     MPI_Finalize();
 
