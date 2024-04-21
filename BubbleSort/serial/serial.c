@@ -4,8 +4,9 @@
 #include <unistd.h>
 
 #include "random_array_100.c"
+#include "random_array_1000.c"
+#include "random_array_5000.c"
 #include "random_array_10000.c"
-#include "random_array_100000.c"
 
 #include <stdbool.h>
 #include <stdio.h>
