@@ -224,6 +224,7 @@ int main(int argc, char** argv) {
         if (rank >= subCount/2){
             // sender
             if (rank == subCount-1 && subCount%2 == 1){
+                // case for an odd amount of MPI Processes, the last rank is sent to rank 0 to account for this
                 MPI_Send(subsorted, subLength, MPI_INT, 0, 0, MPI_COMM_WORLD);
             }
             else{
@@ -248,6 +249,8 @@ int main(int argc, char** argv) {
             
 
             if (rank == 0 && subCount%2 == 1 && subCount){
+                // in the case of needing to take the odd message, we do that here. Adjuster is incremented here and only for
+                // rank 0. It will be 0 in all other ranks
                 int newsize = subLength*3+adjuster;
                 subsorted = realloc(subsorted, (newsize)*sizeof(int));
                 MPI_Recv(subsorted+(subLength*2)+adjuster, subLength, MPI_INT, (subCount-1), 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
