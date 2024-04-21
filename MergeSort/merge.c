@@ -267,6 +267,9 @@ int main(int argc, char** argv) {
     }
 
 
+
+    // Rank 0 collects the result
+
     if (rank == 0){
         printf("Sorted List: [");
         for (int i = 0; i < subLength+adjuster; i++){
