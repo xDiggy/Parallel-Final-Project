@@ -1,15 +1,17 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <mpi.h>
+#include <ctype.h>
 #include <time.h>
 
-extern void mergeCuda(int* array, int startindex, int endindex, int threadCount, int* result);
+extern void mergeCuda(int* array, int len, int threadCount, int* result);
 
 // salloc -N 1 --partition=el8-rpi --gres=gpu:4 -t 30
 // module load xl_r spectrum-mpi cuda/11.2
 // nvcc -g -G merge.cu -c -o mergecu
-// mpicc temp.c mergecu -o mergeout  -L/usr/local/cuda-11.2/lib64/ -lcudadevrt -lcudart -lstdc++
-// mpiexec mergeout randlist.txt
+// mpicc merge.c mergecu -o mergeout  -L/usr/local/cuda-11.2/lib64/ -lcudadevrt -lcudart -lstdc++
+// mpiexec mergeout randlist.txt 100 
+// 
 
 void generate_random_array(const char* filename, int size) {
     // Open the file for writing
@@ -24,16 +26,18 @@ void generate_random_array(const char* filename, int size) {
 
     // Fill the array with random integers
     for (int i = 0; i < size; i++) {
-        fprintf(file, "%d", rand() % 100); // Adjust the range of random numbers as needed
-        if (i < size - 1) {
-            fprintf(file, ",");
+        int x = rand() % 100;// Adjust the range of random numbers as needed
+        if (x > 9){
+            fprintf(file, "%d", x); 
         }
+        else{
+            fprintf(file, " %d", x); 
+        }
+        
     }
 
     // Close the file
     fclose(file);
-
-    printf("File '%s' created successfully.\n", filename);
 }
 
 
@@ -93,19 +97,13 @@ void mergeSort(int* array, int lsize, int rsize, int* result){
 }
 
 int main(int argc, char** argv) {
-   
-    int original[] = {7, 49, 73, 58, 30, 72, 44, 78, 23, 9,
-                40, 65, 92, 42, 87, 3, 27, 29, 40, 12,
-                3, 69, 9, 57, 60, 33, 99, 78, 16, 35, 97,
-                26, 12, 67, 10, 33, 79, 49, 79, 21, 67,
-                72, 93, 36, 85, 45, 28, 91, 94, 57, 1,
-                53, 8, 44, 68, 90, 24, 96, 30, 3, 22,
-                66, 49, 24, 1, 53, 77, 8, 28, 33, 98,
-                81, 35, 13, 65, 14, 63, 36, 25, 69, 15,
-                94, 29, 1, 17, 95, 5, 4, 51, 98, 88, 23,
-                5, 82, 52, 66, 16, 37, 38, 44};
-
-    int len = 100;
+    
+    if (argc < 3) {
+        printf("Wrong Number of Arguments Provided. Usage: %s filename arraysize\n", argv[0]);
+        MPI_Finalize();
+        return 1;
+    }
+    
 
 
     MPI_Init(&argc, &argv);
@@ -126,16 +124,24 @@ int main(int argc, char** argv) {
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
     
     const char* fname = argv[1];
+    int len = atoi(argv[2]);
     if (rank == 0){
-        generate_random_array(fname, 100);
-    }
+        generate_random_array(fname, len);
 
-    if (rank == 0){
+        FILE *file = fopen("randlist.txt", "r");
+        if (file == NULL) {
+            fprintf(stderr, "Error opening file.\n");
+            return 1;
+        }
+
         printf("Original List: [");
-        for (int i = 0; i < 100; i++){
-            printf("%d ",original[i]);
+        int num;
+        while (fscanf(file, "%2d", &num) != EOF) {
+            printf("%d ", num);
         }
         printf("]\n");
+
+        fclose(file);
     }
 
     
@@ -144,30 +150,53 @@ int main(int argc, char** argv) {
     int subLength = 1;
     int subCount = 1;
     for (int i = cores; i > 0; i--){
-        if (len % i == 0 && i%2 == 0){
+        if (len % i == 0 && i%2 == 0 && len/i > 1){
             subCount = i;
             subLength = len / i;
             i = 0;
         }
     }
 
-
-
     // COMPUTATIOn IS HERE:
     MPI_Barrier(MPI_COMM_WORLD);
     int* subsorted = malloc(subLength*sizeof(int));
 
+    MPI_File mfile;
+    MPI_File_open(MPI_COMM_WORLD, fname, MPI_MODE_RDONLY, MPI_INFO_NULL, &mfile);
+
+    int* parsed = calloc(subLength, sizeof(int));
+    int num = 0;
     if (rank < subCount){
         // make the subarray for this mpi rank
-        int startindex;
-        int endindex;
-        startindex =  rank*subLength;
-        endindex = (rank*subLength)+(subLength-1);
+        MPI_Offset offset = rank*(subLength*2)*sizeof(char);
+        char buffer[201];
+        MPI_File_read_at(mfile, offset, buffer, (subLength*sizeof(char))*2, MPI_CHAR, MPI_STATUS_IGNORE);
 
+        for (int i = 0; i < subLength*2; i+=2) {
+            int y;
+            if (isdigit(buffer[i])){
+                char a[3];
+                a[0] = buffer[i];
+                a[1] = buffer[i+1];
+                a[2] = '\0';
+                y = atoi(a);
+            }
+            else{
+                char a[2];
+                a[0] = buffer[i+1];
+                a[1] = '\0';
+                y=atoi(a);
+            }
+            parsed[num] = y;
+            num++;
+        }
+
+
+    
         // pass this to the device to do merge sort in parallel
         int threadCount = 64;
         
-        mergeCuda(original, startindex, endindex , threadCount, subsorted);
+        mergeCuda(parsed, subLength, threadCount, subsorted);
         
 
         /*
@@ -181,6 +210,8 @@ int main(int argc, char** argv) {
         
 
     }
+
+    MPI_File_close(&mfile);
 
     MPI_Barrier(MPI_COMM_WORLD);
 
@@ -214,13 +245,7 @@ int main(int argc, char** argv) {
             
 
             
-            if (rank == 0 && subLength*2+adjuster == 100){
-                printf("Sorted List: [");
-                for (int i = 0; i < subLength*2+adjuster; i++){
-                    printf("%d ",subsorted[i]);
-                }
-                printf("]\n");
-            }
+            
 
             if (rank == 0 && subCount%2 == 1 && subCount){
                 int newsize = subLength*3+adjuster;
@@ -239,6 +264,15 @@ int main(int argc, char** argv) {
         }
         subLength = subLength*2;
         subCount = subCount/2;
+    }
+
+
+    if (rank == 0){
+        printf("Sorted List: [");
+        for (int i = 0; i < subLength+adjuster; i++){
+            printf("%d ",subsorted[i]);
+        }
+        printf("]\n");
     }
 
 

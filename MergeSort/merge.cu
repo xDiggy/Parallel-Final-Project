@@ -4,7 +4,7 @@
 
 extern "C" 
 {
-    void mergeCuda(int* array, int startindex, int endindex, int threadCount,int* result);
+    void mergeCuda(int* array, int len, int threadCount, int* result);
 }
 
 
@@ -104,18 +104,16 @@ __global__ void mergeKernel(int* subarray,int* subarray2, int len, int sizetosor
 }
 
 
-void mergeCuda(int* array, int startindex, int endindex, int threadCount, int* result){
+void mergeCuda(int* array, int len, int threadCount, int* result){
     // create the subarray
-    int len = (endindex - startindex) + 1;
     int * subarray;
     int * subarray2;
     cudaMallocManaged(&subarray, len*sizeof(int));
     cudaMallocManaged(&subarray2, len*sizeof(int));
-
     
     for (int i = 0; i < len; i++){
-        subarray[i] = array[startindex+i];
-        subarray2[i] = array[startindex+i];
+        subarray[i] = array[i];
+        subarray2[i] = array[i];
     }
     /*
     printf("Original array: [");
