@@ -4,7 +4,7 @@
 
 extern "C" 
 {
-    void mergeCuda(int* array, int startindex, int endindex, int threadCount);
+    void mergeCuda(int* array, int startindex, int endindex, int threadCount,int* result);
 }
 
 
@@ -35,7 +35,7 @@ __global__ void mergeKernel(int* subarray,int* subarray2, int len, int sizetosor
             //printf("Sorting [%d,%d]\n",left,right);
             // sort
             int l = 0;
-            int r = 0;
+            int r = 0; 
             while(l < lsize && r < rsize ){
                 int lindex = l+left;
                 int rindex = left+lsize+r;
@@ -104,7 +104,7 @@ __global__ void mergeKernel(int* subarray,int* subarray2, int len, int sizetosor
 }
 
 
-void mergeCuda(int* array, int startindex, int endindex, int threadCount){
+void mergeCuda(int* array, int startindex, int endindex, int threadCount, int* result){
     // create the subarray
     int len = (endindex - startindex) + 1;
     int * subarray;
@@ -117,11 +117,13 @@ void mergeCuda(int* array, int startindex, int endindex, int threadCount){
         subarray[i] = array[startindex+i];
         subarray2[i] = array[startindex+i];
     }
+    /*
     printf("Original array: [");
     for (int i = 0; i < len-1; i++){
         printf("%d ",subarray[i]);
     }
     printf("%d]\n",subarray[len-1]);
+    */
 
     // kernel launch with this subarray    
     // sort every 2
@@ -151,12 +153,23 @@ void mergeCuda(int* array, int startindex, int endindex, int threadCount){
         }
         iteration++;        
     }
-    printf("Resulting array: [");
+
+    /*
+    
+    printf("Sorted array: [");
     for (int i = 0; i < len-1; i++){
         printf("%d ",subarray[i]);
     }
     printf("%d]\n",subarray[len-1]);
+    */
     
+
+    for (int i = 0; i < len; i++){
+        result[i] = subarray[i];
+    }
+
     cudaFree(subarray);
     cudaFree(subarray2);
+
+    cudaDeviceSynchronize();
 }
