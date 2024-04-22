@@ -10,7 +10,7 @@
 //#include "random_128.c"
 
 #define SIZE 5000
-#define FILENAME "test12.txt"
+#define FILENAME "random_array_5000.txt"
 
 extern void bubbleCuda(int* array, int size);
 
@@ -116,8 +116,8 @@ int main (int argc, char *argv[]) {
                 //printf("%-2d ", sorted[i]);
                 if (sorted[i-1] > sorted[i]){
                         valid = 0;
-                        printf("i-1: %f\n", sorted[i-1]);
-                        printf("i, %d: %f\n", i, sorted[i]);
+                        printf("i-1: %d\n", sorted[i-1]);
+                        printf("i, %d: %d\n", i, sorted[i]);
                         break;
                 }
                 //if(i%16 == 0){ printf("\n"); }
