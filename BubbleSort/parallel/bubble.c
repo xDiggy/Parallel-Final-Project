@@ -7,9 +7,9 @@
 #include <unistd.h>
 #include <sys/stat.h>
 #include <string.h>
-#include "random_128.c"
+//#include "random_128.c"
 
-#define SIZE 16
+#define SIZE 5000
 #define FILENAME "test12.txt"
 
 extern void bubbleCuda(int* array, int size);
@@ -28,6 +28,7 @@ int main (int argc, char *argv[]) {
     //outfile = fopen(outfileName, "w");
 
     int* sortedish = calloc(SIZE, sizeof(int));
+    double IO_time = 0;
 
     if(rank == 0){ MPI_Wtime(); }
     //////////
@@ -42,7 +43,7 @@ int main (int argc, char *argv[]) {
     MPI_File_read_at(fh, offset, data, count, MPI_CHAR, &status);
     MPI_File_close(&fh);
     double afterClose = MPI_Wtime();
-    double IO_Time = afterClose - beforeOpen;
+    IO_time += afterClose - beforeOpen;
 
     //MPI_File x;
     //MPI_Offset o;
@@ -51,7 +52,7 @@ int main (int argc, char *argv[]) {
     //MPI_File_write_at(x, o, &IO_Time, 1, MPI_DOUBLE, MPI_STATUS_IGNORE);
     //MPI_File_close(&x);
     //fprintf(outfile, "Rank %d IO Time: %fs\n", rank, IO_Time);
-    printf("Rank %d IO Time: %fs\n", rank, IO_Time);
+    //printf("Rank %d IO Time: %fs\n", rank, IO_Time);
 
     int* mini = calloc(totalElements / numProcesses, sizeof(int));
     int tracker = 0;
@@ -115,6 +116,8 @@ int main (int argc, char *argv[]) {
                 //printf("%-2d ", sorted[i]);
                 if (sorted[i-1] > sorted[i]){
                         valid = 0;
+                        printf("i-1: %f\n", sorted[i-1]);
+                        printf("i, %d: %f\n", i, sorted[i]);
                         break;
                 }
                 //if(i%16 == 0){ printf("\n"); }
@@ -129,6 +132,7 @@ int main (int argc, char *argv[]) {
                 //fprintf(outfile, "VALID SOLUTION\n");
                 printf("Execution time: %fs\n", execTime);
                 //fprintf(outfile, "Total Execution time: %fs\n", execTime);
+                printf("IO time: %f", IO_time);
         }
         free(sorted);
     } else {}

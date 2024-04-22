@@ -3,6 +3,7 @@
 #include <mpi.h>
 #include <ctype.h>
 #include <time.h>
+//#include <clockcycle.h>
 
 extern void mergeCuda(int* array, int len, int threadCount, int* result);
 
@@ -10,8 +11,20 @@ extern void mergeCuda(int* array, int len, int threadCount, int* result);
 // module load xl_r spectrum-mpi cuda/11.2
 // nvcc -g -G merge.cu -c -o mergecu
 // mpicc merge.c mergecu -o mergeout  -L/usr/local/cuda-11.2/lib64/ -lcudadevrt -lcudart -lstdc++
-// mpiexec mergeout randlist.txt 100 
-// 
+// mpiexec mergeout randlist.txt 1000
+//
+
+// uint64_t clock_now(void)
+// {
+//   unsigned int tbl, tbu0, tbu1;
+  
+//   do {
+//     __asm__ __volatile__ ("mftbu %0" : "=r"(tbu0));
+//     __asm__ __volatile__ ("mftb %0" : "=r"(tbl));
+//     __asm__ __volatile__ ("mftbu %0" : "=r"(tbu1));
+//   } while (tbu0 != tbu1);
+//   return (((uint64_t)tbu0) << 32) | tbl;
+// }
 
 void generate_random_array(const char* filename, int size) {
     // Open the file for writing
@@ -134,12 +147,12 @@ int main(int argc, char** argv) {
             return 1;
         }
 
-        printf("Original List: [");
-        int num;
-        while (fscanf(file, "%2d", &num) != EOF) {
-            printf("%d ", num);
-        }
-        printf("]\n");
+        // printf("Original List: [");
+        // int num;
+        // while (fscanf(file, "%2d", &num) != EOF) {
+        //     printf("%d ", num);
+        // }
+        // printf("]\n");
 
         fclose(file);
     }
@@ -166,11 +179,16 @@ int main(int argc, char** argv) {
 
     int* parsed = calloc(subLength, sizeof(int));
     int num = 0;
+    double ttl_read_time = 0;
     if (rank < subCount){
         // make the subarray for this mpi rank
         MPI_Offset offset = rank*(subLength*2)*sizeof(char);
         char buffer[201];
+        //u_int64_t before_read = clock_now();
+        double before_read = MPI_Wtime();
         MPI_File_read_at(mfile, offset, buffer, (subLength*sizeof(char))*2, MPI_CHAR, MPI_STATUS_IGNORE);
+        double after_read = MPI_Wtime();
+        ttl_read_time += after_read-before_read;
 
         for (int i = 0; i < subLength*2; i+=2) {
             int y;
@@ -249,8 +267,6 @@ int main(int argc, char** argv) {
             
 
             if (rank == 0 && subCount%2 == 1 && subCount){
-                // in the case of needing to take the odd message, we do that here. Adjuster is incremented here and only for
-                // rank 0. It will be 0 in all other ranks
                 int newsize = subLength*3+adjuster;
                 subsorted = realloc(subsorted, (newsize)*sizeof(int));
                 MPI_Recv(subsorted+(subLength*2)+adjuster, subLength, MPI_INT, (subCount-1), 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
@@ -273,19 +289,20 @@ int main(int argc, char** argv) {
 
     // Rank 0 collects the result
 
-    if (rank == 0){
-        printf("Sorted List: [");
-        for (int i = 0; i < subLength+adjuster; i++){
-            printf("%d ",subsorted[i]);
-        }
-        printf("]\n");
-    }
+    // if (rank == 0){
+    //     printf("Sorted List: [");
+    //     for (int i = 0; i < subLength+adjuster; i++){
+    //         printf("%d ",subsorted[i]);
+    //     }
+    //     printf("]\n");
+    // }
 
 
     // Finalize the MPI environment.
     if (rank == 0){
         double end_time = MPI_Wtime();
-        printf("Time %f\n",end_time);
+        printf("End time %f\n",end_time);
+        printf("read time: %f\n", ttl_read_time);
         
     }
     free(subsorted);
