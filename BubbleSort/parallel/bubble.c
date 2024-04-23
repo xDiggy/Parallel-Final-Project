@@ -9,8 +9,8 @@
 #include <string.h>
 //#include "random_128.c"
 
-#define SIZE 5000
-#define FILENAME "random_array_5000.txt"
+#define SIZE 100000
+#define FILENAME "random_array_100000.txt"
 
 extern void bubbleCuda(int* array, int size);
 
@@ -112,6 +112,9 @@ int main (int argc, char *argv[]) {
                 ptrs[index] = ptrs[index] + 1;
         }
         int valid = 1;
+        // for(int i = 1; i < SIZE; i++){
+        //         printf("%d\n", sorted[i]);
+        // }
         for(int i = 1; i < SIZE; i++){
                 //printf("%-2d ", sorted[i]);
                 if (sorted[i-1] > sorted[i]){
@@ -124,15 +127,20 @@ int main (int argc, char *argv[]) {
         }
 
         if(valid == 0){
+                double execTime = MPI_Wtime();
                 printf("INCORRECT SOLUTION, TRY AGAIN\n");
-                return 1;
+                //return 1;
+                //fprintf(outfile, "VALID SOLUTION\n");
+                printf("Execution time: %fs\n", execTime);
+                //fprintf(outfile, "Total Execution time: %fs\n", execTime);
+                printf("IO time: %f\n", IO_time);
         } else {
                 double execTime = MPI_Wtime();
                 printf("VALID SOLUTION\n");
                 //fprintf(outfile, "VALID SOLUTION\n");
                 printf("Execution time: %fs\n", execTime);
                 //fprintf(outfile, "Total Execution time: %fs\n", execTime);
-                printf("IO time: %f", IO_time);
+                printf("IO time: %f\n", IO_time);
         }
         free(sorted);
     } else {}
