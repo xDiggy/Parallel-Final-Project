@@ -9,8 +9,8 @@
 #include <string.h>
 //#include "random_128.c"
 
-#define SIZE 100000
-#define FILENAME "random_array_100000.txt"
+#define SIZE 100
+#define FILENAME "random_array_100.txt"
 
 extern void bubbleCuda(int* array, int size);
 
